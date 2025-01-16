@@ -8,8 +8,11 @@ import Modal from "react-bootstrap/Modal";
 import { BiCloudDownload } from "react-icons/bi";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 
 const GenerateInvoice = () => {
+  const paymentLink = "https://buy.stripe.com/bIY2bG6f31JRdqMbIL"; // Your Stripe Payment Link
+
   html2canvas(document.querySelector("#invoiceCapture")).then((canvas) => {
     const imgData = canvas.toDataURL("image/png", 1.0);
     const pdf = new jsPDF({
@@ -22,9 +25,27 @@ const GenerateInvoice = () => {
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save("invoice-001.pdf");
+
+    // Add Stripe payment link as text
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text("Pay Online:", 50, pdfHeight + 30);
+    pdf.setTextColor(0, 0, 255); // Make the link blue
+    pdf.textWithLink(paymentLink, 120, pdfHeight + 30, { url: paymentLink });
+
+    // Generate QR code
+    QRCode.toDataURL(paymentLink, { width: 100 }, (err, url) => {
+      if (!err) {
+        // Add QR code to PDF
+        pdf.addImage(url, "PNG", 50, pdfHeight + 50, 100, 100); // Adjust position and size
+        pdf.save("invoice-001.pdf");
+      } else {
+        console.error("QR Code generation failed:", err);
+      }
+    });
   });
 };
+
 
 const InvoiceModal = ({
   showModal,
@@ -43,9 +64,12 @@ const InvoiceModal = ({
         <div id="invoiceCapture">
           <div className="d-flex flex-row justify-content-between align-items-start bg-light w-100 p-4">
             <div className="w-100">
-              <h4 className="fw-bold my-2">
-                {info.billFrom || "John Uberbacher"}
-              </h4>
+              <img
+                src="./logo.png" // Replace with the actual path or URL of the logo
+                alt="Company Logo"
+                style={{ height: "50px", marginBottom: "10px" }}
+              />
+              <h4 className="fw-bold my-2">{info.billFrom || "John Uberbacher"}</h4>
               <h6 className="fw-bold text-secondary mb-1">
                 Invoice Number: {info.invoiceNumber || ""}
               </h6>
@@ -53,7 +77,6 @@ const InvoiceModal = ({
             <div className="text-end ms-4">
               <h6 className="fw-bold mt-1 mb-2">Amount&nbsp;Due:</h6>
               <h5 className="fw-bold text-secondary">
-                {" "}
                 {currency} {total}
               </h5>
             </div>
@@ -121,25 +144,25 @@ const InvoiceModal = ({
                     {currency} {subTotal}
                   </td>
                 </tr>
-                {taxAmount != 0.0 && (
+                {taxAmount !== 0.0 && (
                   <tr className="text-end">
                     <td></td>
                     <td className="fw-bold" style={{ width: "100px" }}>
                       TAX
                     </td>
                     <td className="text-end" style={{ width: "100px" }}>
-                      {currency} {taxAmount}
+                        {currency} {taxAmount}
                     </td>
                   </tr>
                 )}
-                {discountAmount != 0.0 && (
+                {discountAmount !== 0.0 && (
                   <tr className="text-end">
                     <td></td>
                     <td className="fw-bold" style={{ width: "100px" }}>
                       DISCOUNT
                     </td>
                     <td className="text-end" style={{ width: "100px" }}>
-                      {currency} {discountAmount}
+                        {currency} {discountAmount}
                     </td>
                   </tr>
                 )}
@@ -149,7 +172,7 @@ const InvoiceModal = ({
                     TOTAL
                   </td>
                   <td className="text-end" style={{ width: "100px" }}>
-                    {currency} {total}
+                        {currency} {total}
                   </td>
                 </tr>
               </tbody>
@@ -178,7 +201,6 @@ const InvoiceModal = ({
           </Row>
         </div>
       </Modal>
-      
     </div>
   );
 };
